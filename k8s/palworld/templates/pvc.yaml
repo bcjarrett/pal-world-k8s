@@ -1,0 +1,21 @@
+{{ if .Values.storage.pvc }}
+{{- $fullName := include "palworld.fullname" . -}}
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ $fullName }}
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.storage.pvc.annotations  }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    {{- include "palworld.labels" . | nindent 4 }}
+spec:
+  storageClassName: {{ .Values.storage.pvc.storageClassName}}
+  accessModes:
+    - {{ .Values.storage.pvc.accessMode | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.pvc.size | quote }}
+{{- end}}

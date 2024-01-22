@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "palworld.fullname" . }}
+  labels:
+    {{- include "palworld.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "palworld.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "palworld.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "palworld.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+        - name: game-data
+          {{- if .Values.storage.nfs.enabled }}
+          nfs:
+            {{- toYaml .Values.storage.nfs.config | nindent 12 }}
+          {{- else if .Values.storage.pvc.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "palworld.fullname" . -}}
+          {{- end }}
+        - name: init-script
+          configMap:
+            name: {{ include "palworld.fullname" . }}-init
+            defaultMode: 0777
+        - name: config-ini
+          configMap:
+            name: {{ include "palworld.fullname" . }}-ini
+            defaultMode: 0777
+      containers:
+        - name: {{ .Chart.Name }}
+          command: ["/bin/bash", "/init/servermanager.sh"]
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          env:
+            {{- toYaml .Values.env | nindent 12 }}
+          envFrom:
+            - secretRef:
+                name: palworld-creds
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: palworld
+              containerPort: {{ .Values.containerPort }}
+              protocol: UDP
+          volumeMounts:
+            - name: game-data
+              mountPath: /palworld
+            - name: init-script
+              mountPath: /init
+            - name: config-ini
+              mountPath: /config
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

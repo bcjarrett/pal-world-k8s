@@ -1,0 +1,15 @@
+{{- if .Values.rbac.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "palworld.fullname" . }}
+  namespace: {{ include "palworld.namespace" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "palworld.serviceAccountName" . }}
+  namespace: {{ include "palworld.namespace" . }}
+roleRef:
+  kind: Role
+  name: {{ include "palworld.fullname" . }}
+  apiGroup: rbac.authorization.k8s.io
+{{- end}}

@@ -1,0 +1,233 @@
+# Default values for pals.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+port: &port '8211'
+
+image:
+  repository: cm2network/steamcmd
+  pullPolicy: Always
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+namespaceOverride: ""
+
+# Optional support for existing credentials for admin & server password
+existingSecret: ""
+# e.g.
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: palworld-credentials
+# data:
+#   ADMIN_PASSWORD: B64==
+#   SERVER_PASSWORD: B64==
+# type: Opaque
+
+# Special env vars that manage boot and updates
+env:
+  - name: COMMUNITY_SERVER
+    value: "false"
+  - name: MULTITHREAD_ENABLED
+    value: "true"
+  - name: ALWAYS_UPDATE_ON_START
+    value: "true"
+
+# Current .ini default settings
+serverConfig:
+  - name: Difficulty
+    value: "None"
+  - name: DayTimeSpeedRate
+    value: "1.000000"
+  - name: NightTimeSpeedRate
+    value: "1.000000"
+  - name: ExpRate
+    value: "1.000000"
+  - name: PalCaptureRate
+    value: "1.000000"
+  - name: PalSpawnNumRate
+    value: "1.000000"
+  - name: PalDamageRateAttack
+    value: "1.000000"
+  - name: PalDamageRateDefense
+    value: "1.000000"
+  - name: PlayerDamageRateAttack
+    value: "1.000000"
+  - name: PlayerDamageRateDefense
+    value: "1.000000"
+  - name: PlayerStomachDecreaceRate
+    value: "1.000000"
+  - name: PlayerStaminaDecreaceRate
+    value: "1.000000"
+  - name: PlayerAutoHPRegeneRate
+    value: "1.000000"
+  - name: PlayerAutoHpRegeneRateInSleep
+    value: "1.000000"
+  - name: PalStomachDecreaceRate
+    value: "1.000000"
+  - name: PalStaminaDecreaceRate
+    value: "1.000000"
+  - name: PalAutoHPRegeneRate
+    value: "1.000000"
+  - name: PalAutoHpRegeneRateInSleep
+    value: "1.000000"
+  - name: BuildObjectDamageRate
+    value: "1.000000"
+  - name: BuildObjectDeteriorationDamageRate
+    value: "1.000000"
+  - name: CollectionDropRate
+    value: "1.000000"
+  - name: CollectionObjectHpRate
+    value: "1.000000"
+  - name: CollectionObjectRespawnSpeedRate
+    value: "1.000000"
+  - name: EnemyDropItemRate
+    value: "1.000000"
+  - name: DeathPenalty
+    value: "All"
+  - name: bEnablePlayerToPlayerDamage
+    value: "False"
+  - name: bEnableFriendlyFire
+    value: "False"
+  - name: bEnableInvaderEnemy
+    value: "True"
+  - name: bActiveUNKO
+    value: "False"
+  - name: bEnableAimAssistPad
+    value: "True"
+  - name: bEnableAimAssistKeyboard
+    value: "False"
+  - name: DropItemMaxNum
+    value: "3000"
+  - name: DropItemMaxNum_UNKO
+    value: "100"
+  - name: BaseCampMaxNum
+    value: "128"
+  - name: BaseCampWorkerMaxNum
+    value: "15"
+  - name: DropItemAliveMaxHours
+    value: "1.000000"
+  - name: bAutoResetGuildNoOnlinePlayers
+    value: "False"
+  - name: AutoResetGuildTimeNoOnlinePlayers
+    value: "72.000000"
+  - name: GuildPlayerMaxNum
+    value: "20"
+  - name: PalEggDefaultHatchingTime
+    value: "72.000000"
+  - name: WorkSpeedRate
+    value: "1.000000"
+  - name: bIsMultiplay
+    value: "False"
+  - name: bIsPvP
+    value: "False"
+  - name: bCanPickupOtherGuildDeathPenaltyDrop
+    value: "False"
+  - name: bEnableNonLoginPenalty
+    value: "True"
+  - name: bEnableFastTravel
+    value: "True"
+  - name: bIsStartLocationSelectByMap
+    value: "True"
+  - name: bExistPlayerAfterLogout
+    value: "False"
+  - name: bEnableDefenseOtherGuildPlayer
+    value: "False"
+  - name: CoopPlayerMaxNum
+    value: "4"
+  - name: ServerPlayerMaxNum
+    value: "32"
+  - name: ServerName
+    value: "My Server"
+  - name: ServerDescription
+    value: "My Server's Description"
+  - name: AdminPassword
+    value: "CHANGEME"
+  - name: ServerPassword
+    value: "CHANGEME"
+  - name: PublicPort
+    value: "8211"
+  - name: PublicIP
+    value: ""
+  - name: RCONEnabled
+    value: "False"
+  - name: RCONPort
+    value: "25575"
+  - name: Region
+    value: ""
+  - name: bUseAuth
+    value: "True"
+  - name: BanListURL
+    value: "https://api.palworldgame.com/api/banlist.txt"
+
+containerPort: *port
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+rbac:
+  enabled: true
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+#  capabilities:
+#    drop:
+#    - ALL
+#  readOnlyRootFilesystem: true
+#  runAsNonRoot: true
+#  runAsUser: 1026
+#  runAsGroup: "101"
+
+
+# Recommend you place this behind a loadbalancer with a static IP. Tested with metallb settings below
+service:
+  type: "LoadBalancer"
+  port: *port
+  annotations: {}
+  # e.g.
+  #  metallb.universe.tf/address-pool: "my-pool"
+  loadBalancerIP: "" # e.g. 10.0.0.10
+
+resources:
+  # These are recommended values from palworld devs
+   limits:
+     cpu: 8
+     memory: 32Gi
+   requests:
+     cpu: 4
+     memory: 16Gi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+storage:
+  pvc:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    annotations: {}
+    storageClassName: ""
+  nfs:
+    enabled: false
+    config: {}
+    # Configure NFS storage like so
+    #  server: 10.0.0.100
+    #  path: /cluster/palworld/

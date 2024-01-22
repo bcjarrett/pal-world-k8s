@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "palworld.fullname" . }}-init
+  labels:
+    {{- include "palworld.labels" . | nindent 4 }}
+data:
+  servermanager.sh: |
+    #!/bin/bash
+
+    # Adapted from https://github.com/jammsen/docker-palworld-dedicated-server
+
+    GAME_PATH="/palworld"
+
+    function installServer() {
+        # force a fresh install of all
+        echo ">>> Doing a fresh install of the gameserver"
+        /home/steam/steamcmd/steamcmd.sh +force_install_dir "/palworld" +login anonymous +app_update 2394010 validate +quit
+    }
+
+    function updateServer() {
+        # force an update and validation
+        echo ">>> Doing an update of the gameserver"
+        /home/steam/steamcmd/steamcmd.sh +force_install_dir "/palworld" +login anonymous +app_update 2394010 validate +quit
+    }
+
+    function startServer() {
+        echo ">>> Starting the gameserver"
+        cd $GAME_PATH
+
+        echo "Checking if config exists"
+        if [ ! -f ${GAME_PATH}/Pal/Saved/Config/LinuxServer/PalWorldSettings.ini ]; then
+            echo "No config found, generating one"
+            if [ ! -d ${GAME_PATH}/Pal/Saved/Config/LinuxServer ]; then
+                mkdir -p ${GAME_PATH}/Pal/Saved/Config/LinuxServer
+            fi
+            # Copy default-config, which comes with the server to gameserver-save location
+            cp ${GAME_PATH}/DefaultPalWorldSettings.ini ${GAME_PATH}/Pal/Saved/Config/LinuxServer/PalWorldSettings.ini
+        fi
+
+        # Target file to be modified
+        while IFS= read -r line; do
+            # Extract the key and value using regex
+            if [[ $line =~ ^([a-zA-Z]+[a-zA-Z0-9_]*)=(.*)$ ]]; then
+                key="${BASH_REMATCH[1]}"
+                value="${BASH_REMATCH[2]}"
+                # Check if the value is a number (float or int), Bool, or string
+                if [[ $value =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+                    # It's a number, use it as-is
+                    formatted_value="$value"
+                elif [[ $value =~ ^(True|False|None)$ ]]; then
+                    # It's a Bool, use it as-is
+                    formatted_value="$value"
+                else
+                    # It's a string, add quotation marks
+                    formatted_value="\"$value\""
+                fi
+                # Use sed with a different delimiter (|) to avoid conflicts
+                # Handles both comma and parenthesis as line terminators
+                sed -i "s|\($key=\)[^,]*|\1$formatted_value|" "${GAME_PATH}/Pal/Saved/Config/LinuxServer/PalWorldSettings.ini"
+            fi
+        done < "/config/settings.conf"
+
+        # Fix up the end of the file
+        echo '' >> ${GAME_PATH}/Pal/Saved/Config/LinuxServer/PalWorldSettings.ini
+        echo '' >> ${GAME_PATH}/Pal/Saved/Config/LinuxServer/PalWorldSettings.ini
+
+        awk '{
+            if (NF > 0) {
+                last_nonempty_line = NR;
+                lines[NR] = $0;
+            } else {
+                lines[NR] = "";
+            }
+        }
+        END {
+            for (i = 1; i <= last_nonempty_line; i++) {
+                if (i == last_nonempty_line) {
+                    if (substr(lines[i], length(lines[i])) != ")") {
+                        print lines[i] ")";
+                    } else {
+                        print lines[i];
+                    }
+                } else {
+                    print lines[i];
+                }
+            }
+            print "";
+            print "";
+        }' ${GAME_PATH}/Pal/Saved/Config/LinuxServer/PalWorldSettings.ini > temp_file  && mv temp_file ${GAME_PATH}/Pal/Saved/Config/LinuxServer/PalWorldSettings.ini
+
+        if [[ ! -z ${SERVER_PASSWORD+x} ]]; then
+          echo "Setting server password from ENV var"
+          sed -i "s/ServerPassword=\"[^\"]*\"/ServerPassword=\"$SERVER_PASSWORD\"/" ${GAME_PATH}/Pal/Saved/Config/LinuxServer/PalWorldSettings.ini
+        fi
+        if [[ ! -z ${ADMIN_PASSWORD+x} ]]; then
+            echo "Setting server admin password from ENV var"
+            sed -i "s/AdminPassword=\"[^\"]*\"/AdminPassword=\"$ADMIN_PASSWORD\"/" ${GAME_PATH}/Pal/Saved/Config/LinuxServer/PalWorldSettings.ini
+        fi
+
+        START_OPTIONS=""
+        if [[ -n $COMMUNITY_SERVER ]] && [[ $COMMUNITY_SERVER == "true" ]]; then
+            START_OPTIONS="$START_OPTIONS EpicApp=PalServer"
+        fi
+        if [[ -n $MULTITHREAD_ENABLED ]] && [[ $MULTITHREAD_ENABLED == "true" ]]; then
+            START_OPTIONS="$START_OPTIONS -useperfthreads -NoAsyncLoadingThread -UseMultithreadForDS"
+        fi
+        ./PalServer.sh "$START_OPTIONS"
+    }
+
+    function startMain() {
+        # Check if server is installed, if not try again
+        if [ ! -f "/palworld/PalServer.sh" ]; then
+            installServer
+        fi
+        if [ $ALWAYS_UPDATE_ON_START == "true" ]; then
+            updateServer
+        fi
+        startServer
+    }
+
+    startMain
+
