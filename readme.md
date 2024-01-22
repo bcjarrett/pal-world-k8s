@@ -1,6 +1,6 @@
 # Palworld Helm Chart
 
-Deploy a pwlworld server. 
+Deploy a palworld server. 
 
 ## Running
 
