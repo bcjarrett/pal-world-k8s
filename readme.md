@@ -1,5 +1,3 @@
-markdown
-
 # Palworld Helm Chart
 
 This Helm chart deploys a Palworld server on a Kubernetes cluster. Palworld is a multiplayer, open-world survival
