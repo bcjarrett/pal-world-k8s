@@ -72,3 +72,18 @@ Allow the release namespace to be overridden for multi-namespace deployments in 
 {{- .Release.Namespace }}
 {{- end }}
 {{- end }}
+
+
+{{/*
+Generate start options for PalServer
+*/}}
+{{- define "palworld.startOptions" -}}
+{{- $startOptions := list -}}
+{{- if and .Values.startOptions.communityServer (eq .Values.startOptions.communityServer "true") -}}
+  {{- $startOptions = append $startOptions "EpicApp=PalServer" -}}
+{{- end -}}
+{{- if and .Values.startOptions.multithreadEnabled (eq .Values.startOptions.multithreadEnabled "true") -}}
+  {{- $startOptions = append $startOptions "-useperfthreads -NoAsyncLoadingThread -UseMultithreadForDS" -}}
+{{- end -}}
+{{- join " " $startOptions -}}
+{{- end -}}

@@ -10,18 +10,18 @@ data:
 
     # Adapted from https://github.com/jammsen/docker-palworld-dedicated-server
 
-    GAME_PATH="/palworld"
+    GAME_PATH="{{ .Values.startOptions.installDirectory }}"
 
     function installServer() {
         # force a fresh install of all
         echo ">>> Doing a fresh install of the gameserver"
-        /home/steam/steamcmd/steamcmd.sh +force_install_dir "/palworld" +login anonymous +app_update 2394010 validate +quit
+        /home/steam/steamcmd/steamcmd.sh +force_install_dir "{{ .Values.startOptions.installDirectory }}" +login anonymous +app_update 2394010 validate +quit
     }
 
     function updateServer() {
         # force an update and validation
         echo ">>> Doing an update of the gameserver"
-        /home/steam/steamcmd/steamcmd.sh +force_install_dir "/palworld" +login anonymous +app_update 2394010 validate +quit
+        /home/steam/steamcmd/steamcmd.sh +force_install_dir "{{ .Values.startOptions.installDirectory }}" +login anonymous +app_update 2394010 validate +quit
     }
 
     function startServer() {
@@ -98,26 +98,16 @@ data:
             sed -i "s/AdminPassword=\"[^\"]*\"/AdminPassword=\"$ADMIN_PASSWORD\"/" ${GAME_PATH}/Pal/Saved/Config/LinuxServer/PalWorldSettings.ini
         fi
 
-        START_OPTIONS=""
-        if [[ -n $COMMUNITY_SERVER ]] && [[ $COMMUNITY_SERVER == "true" ]]; then
-            START_OPTIONS="$START_OPTIONS EpicApp=PalServer"
-        fi
-        if [[ -n $MULTITHREAD_ENABLED ]] && [[ $MULTITHREAD_ENABLED == "true" ]]; then
-            START_OPTIONS="$START_OPTIONS -useperfthreads -NoAsyncLoadingThread -UseMultithreadForDS"
-        fi
-        ./PalServer.sh "$START_OPTIONS"
     }
 
-    function startMain() {
+    function setupServer() {
         # Check if server is installed, if not try again
-        if [ ! -f "/palworld/PalServer.sh" ]; then
+        if [ ! -f "{{ .Values.startOptions.installDirectory }}/PalServer.sh" ]; then
             installServer
         fi
         if [ $ALWAYS_UPDATE_ON_START == "true" ]; then
             updateServer
         fi
-        startServer
     }
 
-    startMain
-
+    setupServer

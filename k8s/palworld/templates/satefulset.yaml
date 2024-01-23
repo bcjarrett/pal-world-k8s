@@ -42,17 +42,34 @@ spec:
           configMap:
             name: {{ include "palworld.fullname" . }}-ini
             defaultMode: 0777
-      containers:
-        - name: {{ .Chart.Name }}
-          command: ["/bin/bash", "/init/servermanager.sh"]
+      initContainers:
+        - name: installer
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: [ "/bin/bash", "-c", "/init/servermanager.sh" ]
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           env:
-            {{- toYaml .Values.env | nindent 12 }}
+            - name: ALWAYS_UPDATE_ON_START
+              value: "{{ .Values.startOptions.updateOnStart }}"
           envFrom:
             - secretRef:
                 name: palworld-creds
+          volumeMounts:
+            - name: game-data
+              mountPath: {{ .Values.startOptions.installDirectory }}
+            - name: init-script
+              mountPath: /init
+            - name: config-ini
+              mountPath: /config
+      containers:
+        - name: {{ .Chart.Name }}
+          command: [ "{{ .Values.startOptions.installDirectory }}/PalServer.sh" ]
+          args:
+            - |
+              ./PalServer.sh "{{ include "palworld.startOptions" . }}"
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: palworld
@@ -60,11 +77,7 @@ spec:
               protocol: UDP
           volumeMounts:
             - name: game-data
-              mountPath: /palworld
-            - name: init-script
-              mountPath: /init
-            - name: config-ini
-              mountPath: /config
+              mountPath: {{ .Values.startOptions.installDirectory }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

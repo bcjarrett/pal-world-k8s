@@ -30,13 +30,11 @@ existingSecret: ""
 # type: Opaque
 
 # Special env vars that manage boot and updates
-env:
-  - name: COMMUNITY_SERVER
-    value: "false"
-  - name: MULTITHREAD_ENABLED
-    value: "true"
-  - name: ALWAYS_UPDATE_ON_START
-    value: "true"
+startOptions:
+    installDirectory: "/palworld"
+    communityServer: "true"
+    multithreadEnabled: "true"
+    updateOnStart: "true"
 
 # Current .ini default settings
 serverConfig:
@@ -206,7 +204,7 @@ service:
 resources:
   # These are recommended values from palworld devs
    limits:
-     cpu: 8
+     cpu: 4
      memory: 32Gi
    requests:
      cpu: 4
